@@ -1,0 +1,33 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "80"
+    env_file:
+      - backend/.env
+    volumes:
+      - ./data/database:/app/database
+      - ./data/uploads:/app/uploads
+      - ./data/exports:/app/exports
+      - ./data/backups:/app/backups
+      - ./data/catalogues:/app/catalogues
+
+volumes:
+  caddy_data:
+  caddy_config:

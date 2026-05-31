@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+database/*.db
+database/*.db-shm
+database/*.db-wal
+uploads/photos/*
+!uploads/photos/.gitkeep
+exports/*.xlsx
+!exports/.gitkeep
+backups/*
+!backups/.gitkeep
+catalogues/*.pdf
