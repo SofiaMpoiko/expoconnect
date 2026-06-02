@@ -50,14 +50,14 @@ export default function AdminLoginPage() {
         <BrandLogo />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center px-5 py-8 text-center sm:max-w-xl sm:px-6">
+      <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-lg flex-1 flex-col items-center justify-center px-5 py-8 text-center sm:max-w-xl sm:px-6">
         <h1 className="intro-headline static bottom-auto left-auto right-auto mx-auto -mt-12 mb-6 w-full max-w-lg translate-y-0 sm:-mt-14 sm:max-w-xl">
           <span className="intro-line block text-2xl font-bold leading-none tracking-tight text-white sm:text-3xl">
             ExpoConnect
           </span>
         </h1>
 
-        <p className="intro-sub mb-12 mt-0 max-w-none whitespace-nowrap px-1 text-lg leading-none text-zinc-400 sm:text-xl">
+        <p className="intro-sub mb-12 mt-0 w-full min-w-0 max-w-md px-1 text-base leading-snug text-zinc-400 sm:text-lg">
           Collect visitor information, requests, and follow-up opportunities in one place.
         </p>
 
@@ -88,11 +88,11 @@ export default function AdminLoginPage() {
         </form>
       </div>
 
-      <div className="intro-footer-tags relative z-10 mt-auto flex items-end justify-between gap-4 px-5 pb-6 pt-2 text-[9px] uppercase tracking-[0.18em] text-zinc-500 sm:px-6 sm:pb-8 sm:text-[10px]">
-        <span className="intro-tag shrink-0 text-zinc-500">
+      <div className="intro-footer-tags relative z-10 mt-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-5 pb-6 pt-2 text-center text-[9px] uppercase tracking-[0.18em] text-zinc-500 sm:items-end sm:justify-between sm:gap-4 sm:px-6 sm:pb-8 sm:text-left sm:text-[10px]">
+        <span className="intro-tag min-w-0 text-zinc-500">
           #carbonzapp<span className="text-[#EE412F]">X</span>series
         </span>
-        <span className="intro-tag shrink-0 font-semibold text-[#EE412F]">Innovation driven</span>
+        <span className="intro-tag min-w-0 font-semibold text-[#EE412F]">Innovation driven</span>
       </div>
     </div>
   );

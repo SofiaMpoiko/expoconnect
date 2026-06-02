@@ -74,11 +74,11 @@ export default function AdminQrPage() {
         </p>
       </div>
 
-      <div className="intro-footer-tags relative z-10 mt-auto flex items-end justify-between gap-4 px-5 pb-6 pt-2 text-[9px] uppercase tracking-[0.18em] text-zinc-500 sm:px-6 sm:pb-8 sm:text-[10px]">
-        <span className="intro-tag shrink-0 text-zinc-500">
+      <div className="intro-footer-tags relative z-10 mt-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-5 pb-6 pt-2 text-center text-[9px] uppercase tracking-[0.18em] text-zinc-500 sm:items-end sm:justify-between sm:gap-4 sm:px-6 sm:pb-8 sm:text-left sm:text-[10px]">
+        <span className="intro-tag min-w-0 text-zinc-500">
           #carbonzapp<span className="text-[#EE412F]">X</span>series
         </span>
-        <span className="intro-tag shrink-0 font-semibold text-[#EE412F]">Innovation driven</span>
+        <span className="intro-tag min-w-0 font-semibold text-[#EE412F]">Innovation driven</span>
       </div>
     </div>
   );

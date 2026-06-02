@@ -254,20 +254,22 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-full bg-cz-admin-bg">
+    <div className="min-h-full overflow-x-hidden bg-cz-admin-bg">
       <OfflineBanner />
 
       <header className="border-b border-cz-admin-line bg-white pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <img
-            src="/carbon-zapp-logo.png"
-            srcSet="/carbon-zapp-logo.png 1x, /carbon-zapp-logo@2x.png 2x"
-            width={328}
-            height={68}
-            alt="Carbon Zapp"
-            className="h-9 w-auto max-w-[min(100%,220px)] sm:h-10"
-            decoding="async"
-          />
+          <div className="flex w-full justify-center sm:w-auto sm:justify-start">
+            <img
+              src="/carbon-zapp-logo.png"
+              srcSet="/carbon-zapp-logo.png 1x, /carbon-zapp-logo@2x.png 2x"
+              width={328}
+              height={68}
+              alt="Carbon Zapp"
+              className="h-9 w-auto object-contain sm:h-10"
+              decoding="async"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <Link
               className="flex min-h-[44px] items-center justify-center rounded-2xl bg-[#EE412F] px-3 py-2.5 text-center text-sm font-semibold text-white shadow-[0_10px_15px_-3px_rgb(238_65_47/0.25)] hover:opacity-95 sm:px-4 sm:py-3"
