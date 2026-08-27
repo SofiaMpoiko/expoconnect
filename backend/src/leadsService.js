@@ -82,7 +82,7 @@ export function getLeadById(id) {
 export function insertLead(payload) {
   const fullName = normalizeString(payload.full_name);
   const company = normalizeString(payload.company);
-  const country = normalizeString(payload.country);
+  const country = normalizeString(payload.country) || null;
   const notes = normalizeString(payload.notes) || null;
 
   const emailRes = validateEmail(payload.email);
@@ -96,7 +96,6 @@ export function insertLead(payload) {
 
   if (!isNonEmptyString(fullName)) throw new Error('Full name is required.');
   if (!isNonEmptyString(company)) throw new Error('Company is required.');
-  if (!isNonEmptyString(country)) throw new Error('Country is required.');
 
   const consent = parseConsent(payload.consent);
   if (!consent) throw new Error('Consent is required to proceed.');
@@ -134,7 +133,7 @@ export function updateLead(id, payload) {
 
   const fullName = normalizeString(payload.full_name ?? existing.full_name);
   const company = normalizeString(payload.company ?? existing.company);
-  const country = normalizeString(payload.country ?? existing.country ?? '');
+  const country = normalizeString(payload.country ?? existing.country ?? '') || null;
   const notes = normalizeString(payload.notes ?? existing.notes ?? '') || null;
 
   const emailRes = validateEmail(payload.email ?? existing.email);
@@ -150,7 +149,6 @@ export function updateLead(id, payload) {
 
   if (!isNonEmptyString(fullName)) throw new Error('Full name is required.');
   if (!isNonEmptyString(company)) throw new Error('Company is required.');
-  if (!isNonEmptyString(country)) throw new Error('Country is required.');
 
   const consent =
     payload.consent !== undefined ? parseConsent(payload.consent) : existing.consent;

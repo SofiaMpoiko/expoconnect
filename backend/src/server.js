@@ -26,6 +26,7 @@ import { notifyLeadsChanged, subscribeLeadsStream } from './leadEvents.js';
 import { deleteLead, getLeadById, insertLead, listLeads, updateLead } from './leadsService.js';
 import { paths } from './paths.js';
 import { deletePhotoFileIfExists, publicPhotoUrl, uploadPhoto } from './upload.js';
+import { extractWebsiteContact } from './websiteContact.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -154,6 +155,18 @@ app.get('/api/admin/session', requireAdmin, (_req, res) => {
 app.post('/api/admin/logout', (req, res) => {
   revokeSession(bearerToken(req));
   res.json({ ok: true });
+});
+
+/** Best-effort contact fields from a public website (admin card-scan flow). */
+app.post('/api/admin/extract-website', requireAdmin, async (req, res) => {
+  try {
+    const url = String(req.body?.url || '').trim();
+    if (!url) return res.status(400).json({ error: 'Missing url.' });
+    const contact = await extractWebsiteContact(url);
+    res.json({ contact });
+  } catch (e) {
+    res.status(400).json({ error: String(e?.message || e) });
+  }
 });
 
 app.get('/api/leads', requireAdmin, (req, res) => {

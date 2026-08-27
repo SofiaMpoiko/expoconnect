@@ -1,8 +1,31 @@
+import os from 'node:os';
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const DEV_PORT = 5173;
+
+/** First non-internal IPv4 address, for phone/LAN QR testing. */
+function lanOrigin(port = DEV_PORT) {
+  const nets = os.networkInterfaces();
+  for (const entries of Object.values(nets)) {
+    for (const net of entries || []) {
+      const family = String(net.family);
+      if ((family === 'IPv4' || family === '4') && !net.internal) {
+        return `http://${net.address}:${port}`;
+      }
+    }
+  }
+  return '';
+}
+
+const DEV_LAN_ORIGIN = lanOrigin();
+
 export default defineConfig({
+  define: {
+    __DEV_LAN_ORIGIN__: JSON.stringify(DEV_LAN_ORIGIN),
+  },
   plugins: [
     react(),
     VitePWA({
@@ -41,10 +64,15 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 5173,
+    host: true,
+    port: DEV_PORT,
     proxy: {
       '/api': 'http://127.0.0.1:3001',
       '/uploads': 'http://127.0.0.1:3001',
     },
+  },
+  preview: {
+    host: true,
+    port: DEV_PORT,
   },
 });

@@ -3,13 +3,24 @@ import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import BrandLogo from '../components/BrandLogo.jsx';
 
+function isLoopbackHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+/** Prefer LAN origin in local dev so phones on the same Wi‑Fi can open the QR. */
 function visitorIntroUrl() {
-  return `${window.location.origin}/`;
+  const { hostname, origin } = window.location;
+  const lanOrigin = typeof __DEV_LAN_ORIGIN__ === 'string' ? __DEV_LAN_ORIGIN__ : '';
+  if (isLoopbackHost(hostname) && lanOrigin) {
+    return `${lanOrigin.replace(/\/$/, '')}/`;
+  }
+  return `${origin}/`;
 }
 
 export default function AdminQrPage() {
   const [animate, setAnimate] = useState(false);
   const [qrSrc, setQrSrc] = useState('');
+  const [qrUrl, setQrUrl] = useState('');
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -20,6 +31,7 @@ export default function AdminQrPage() {
 
   useEffect(() => {
     const url = visitorIntroUrl();
+    setQrUrl(url);
     QRCode.toDataURL(url, {
       width: 280,
       margin: 2,
@@ -72,6 +84,11 @@ export default function AdminQrPage() {
         <p className="qr-hint mt-6 max-w-xs text-sm leading-relaxed text-zinc-400 sm:text-base">
           Scan, share your contact details and our team will follow up soon.
         </p>
+        {qrUrl ? (
+          <p className="mt-3 max-w-sm break-all text-xs text-zinc-500" title={qrUrl}>
+            {qrUrl}
+          </p>
+        ) : null}
       </div>
 
       <div className="intro-footer-tags relative z-10 mt-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-5 pb-6 pt-2 text-center text-[9px] uppercase tracking-[0.18em] text-zinc-500 sm:items-end sm:justify-between sm:gap-4 sm:px-6 sm:pb-8 sm:text-left sm:text-[10px]">

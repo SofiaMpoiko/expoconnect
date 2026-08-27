@@ -25,14 +25,7 @@ export default function VisitorPage() {
   const [error, setError] = useState('');
 
   const canSubmit = useMemo(() => {
-    return (
-      form.full_name.trim() &&
-      form.company.trim() &&
-      form.email.trim() &&
-      form.country.trim() &&
-      form.business_type &&
-      form.consent
-    );
+    return form.full_name.trim() && form.company.trim() && form.email.trim() && form.consent;
   }, [form]);
 
   async function onSubmit(e) {
@@ -147,15 +140,14 @@ export default function VisitorPage() {
           />
         </Field>
 
-        <Field label="Business type" required>
+        <Field label="Business type">
           <select
-            className="input-dark"
+            className={`input-dark${!form.business_type ? ' select-placeholder' : ''}`}
             value={form.business_type}
             onChange={(e) => setForm({ ...form, business_type: e.target.value })}
-            required
           >
-            <option value="" disabled>
-              Select from the list
+            <option value="" className="italic text-zinc-500">
+              Select
             </option>
             {BUSINESS_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -165,7 +157,7 @@ export default function VisitorPage() {
           </select>
         </Field>
 
-        <Field label="Country" required>
+        <Field label="Country">
           <input
             className="input-dark"
             value={form.country}

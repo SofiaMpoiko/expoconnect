@@ -1,4 +1,4 @@
-export const BUSINESS_TYPES = ['Distributor', 'Workshop', 'OEM', 'Trader'];
+export const BUSINESS_TYPES = ['OEM', 'Workshop', 'Distributor', 'Other'];
 
 export const PRODUCTS = ['LTBR', 'MTBR', 'ITBR', 'CTBR', 'PTRB', 'GTBR', 'HTBR', 'ETBR', 'OTHER'];
 

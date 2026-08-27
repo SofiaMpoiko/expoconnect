@@ -1,13 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { clearAdminToken, getAdminToken } from '../adminAuth.js';
 import { BUSINESS_TYPES, EXPORT_COLUMNS, PRODUCTS } from '../constants.js';
 import { OfflineBanner } from '../hooks/useOfflineQueue.jsx';
 
+const CardScanner = lazy(() => import('../components/CardScanner.jsx'));
+
 function formatWhen(iso) {
   try {
-    return new Date(iso).toLocaleString();
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso || '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${yy} ${hh}:${min}`;
   } catch {
     return iso || '';
   }
@@ -103,9 +112,23 @@ export default function AdminPage() {
   const [dateTo, setDateTo] = useState('');
 
   const [showAdd, setShowAdd] = useState(false);
+  const [addStep, setAddStep] = useState('scan'); // 'scan' | 'form'
+  const [addPrefill, setAddPrefill] = useState(null);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+
+  function openAddLead() {
+    setAddPrefill(null);
+    setAddStep('scan');
+    setShowAdd(true);
+  }
+
+  function closeAddLead() {
+    setShowAdd(false);
+    setAddStep('scan');
+    setAddPrefill(null);
+  }
 
   const [exportBusy, setExportBusy] = useState(false);
 
@@ -258,17 +281,20 @@ export default function AdminPage() {
       <OfflineBanner />
 
       <header className="border-b border-cz-admin-line bg-white pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex w-full justify-center sm:w-auto sm:justify-start">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start sm:gap-3">
             <img
               src="/carbon-zapp-logo.png"
               srcSet="/carbon-zapp-logo.png 1x, /carbon-zapp-logo@2x.png 2x"
               width={328}
               height={68}
               alt="Carbon Zapp"
-              className="h-9 w-auto object-contain sm:h-10"
+              className="h-7 w-auto object-contain sm:h-8"
               decoding="async"
             />
+            <span className="shrink-0 text-sm font-semibold uppercase tracking-[0.14em] text-cz-admin-ink sm:text-xs sm:tracking-[0.12em]">
+              E<span className="text-[#EE412F]">X</span>POCONNECT
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <Link
@@ -286,7 +312,7 @@ export default function AdminPage() {
             <button
               type="button"
               className="min-h-[44px] rounded-2xl bg-zinc-700 px-3 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 sm:px-4 sm:py-3"
-              onClick={() => setShowAdd((v) => !v)}
+              onClick={() => (showAdd ? closeAddLead() : openAddLead())}
             >
               {showAdd ? 'Close' : 'Add lead'}
             </button>
@@ -300,7 +326,7 @@ export default function AdminPage() {
             </button>
             <button
               type="button"
-              className="min-h-[44px] rounded-2xl border border-cz-admin-line bg-white px-3 py-2.5 text-sm font-semibold text-cz-admin-muted hover:bg-cz-admin-elevated hover:text-cz-admin-ink sm:px-4 sm:py-3"
+              className="col-start-2 min-h-[44px] rounded-2xl border border-cz-admin-line bg-white px-3 py-2.5 text-sm font-semibold text-cz-admin-muted hover:bg-cz-admin-elevated hover:text-cz-admin-ink sm:col-start-auto sm:px-4 sm:py-3"
               onClick={() => logout().catch(() => {})}
             >
               Log out
@@ -309,11 +335,11 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 pb-4 pt-5 sm:pb-6">
+      <div className="mx-auto max-w-[1600px] px-4 pb-4 pt-5 sm:pb-6">
         <h1 className="text-xl font-semibold tracking-tight text-cz-admin-ink sm:text-2xl">Lead Dashboard</h1>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto max-w-[1600px] px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
         {error ? (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
             {error}
@@ -322,14 +348,60 @@ export default function AdminPage() {
 
         {showAdd ? (
           <div className="mb-6">
-            <LeadEditor
-              title="Manual lead entry"
-              onClose={() => setShowAdd(false)}
-              onSaved={() => {
-                setShowAdd(false);
-                refresh().catch(() => {});
-              }}
-            />
+            {addStep === 'scan' ? (
+              <Suspense
+                fallback={
+                  <div className="rounded-3xl border border-cz-admin-line bg-white px-4 py-10 text-center text-sm text-cz-admin-muted">
+                    Loading scanner…
+                  </div>
+                }
+              >
+                <CardScanner
+                  onClose={closeAddLead}
+                  onSkip={() => {
+                    setAddPrefill(null);
+                    setAddStep('form');
+                  }}
+                  onResult={(contact) => {
+                    setAddPrefill({
+                      full_name: contact.full_name || '',
+                      company: contact.company || '',
+                      email: contact.email || '',
+                      notes: contact.notes || '',
+                      country: '',
+                      business_type: '',
+                      consent: true,
+                    });
+                    setAddStep('form');
+                  }}
+                />
+              </Suspense>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="min-h-[44px] rounded-2xl border border-cz-admin-line bg-white px-4 py-2.5 text-sm font-semibold text-cz-admin-ink"
+                    onClick={() => {
+                      setAddPrefill(null);
+                      setAddStep('scan');
+                    }}
+                  >
+                    Scan again
+                  </button>
+                </div>
+                <LeadEditor
+                  key={addPrefill ? `prefill-${addPrefill.email}-${addPrefill.full_name}-${addPrefill.company}` : 'manual'}
+                  title={addPrefill ? 'Review scanned lead' : 'Manual lead entry'}
+                  initial={addPrefill || undefined}
+                  onClose={closeAddLead}
+                  onSaved={() => {
+                    closeAddLead();
+                    refresh().catch(() => {});
+                  }}
+                />
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -409,50 +481,62 @@ export default function AdminPage() {
           )}
         </div>
 
-        <div className="hidden overflow-hidden rounded-3xl border border-cz-admin-line bg-white shadow-sm lg:block">
+        <div className="hidden rounded-3xl border border-cz-admin-line bg-white shadow-sm lg:block">
           <div className="overflow-x-auto">
-            <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+            <table className="w-full table-fixed border-collapse text-left text-sm">
+              <colgroup>
+                <col className="w-[9%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[8%]" />
+                <col className="w-[14%]" />
+                <col className="w-[9%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[5%]" />
+                <col className="w-[7%]" />
+              </colgroup>
               <thead className="bg-cz-admin-elevated text-xs font-semibold text-cz-admin-muted">
                 <tr>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Full name</th>
-                  <th className="px-4 py-3">Company</th>
-                  <th className="px-4 py-3">Country</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Business type</th>
-                  <th className="px-4 py-3">Products</th>
-                  <th className="px-4 py-3">Notes</th>
-                  <th className="px-4 py-3">Photo</th>
-                  <th className="px-4 py-3">Actions</th>
+                  <th className="px-3 py-3">Date</th>
+                  <th className="px-3 py-3">Full name</th>
+                  <th className="px-3 py-3">Company</th>
+                  <th className="px-3 py-3">Country</th>
+                  <th className="px-3 py-3">Email</th>
+                  <th className="px-3 py-3">Business type</th>
+                  <th className="px-3 py-3">Products</th>
+                  <th className="px-3 py-3">Notes</th>
+                  <th className="px-3 py-3">Photo</th>
+                  <th className="px-3 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-6 text-cz-admin-muted" colSpan={10}>
+                    <td className="px-3 py-6 text-cz-admin-muted" colSpan={10}>
                       Loading…
                     </td>
                   </tr>
                 ) : leads.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-6 text-cz-admin-muted" colSpan={10}>
+                    <td className="px-3 py-6 text-cz-admin-muted" colSpan={10}>
                       No leads match these filters.
                     </td>
                   </tr>
                 ) : (
                   leads.map((l) => (
                     <tr key={l.id} className="border-t border-cz-admin-line">
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-cz-admin-muted">{formatWhen(l.created_at)}</td>
-                      <td className="px-4 py-3 font-medium">{l.full_name}</td>
-                      <td className="px-4 py-3">{l.company}</td>
-                      <td className="px-4 py-3">{l.country || ''}</td>
-                      <td className="px-4 py-3">{l.email}</td>
-                      <td className="px-4 py-3">{l.business_type}</td>
-                      <td className="px-4 py-3">{(l.interested_products || []).join(', ')}</td>
-                      <td className="max-w-[260px] px-4 py-3 text-cz-admin-muted">
-                        <div className="line-clamp-3 whitespace-pre-wrap">{l.notes || ''}</div>
+                      <td className="break-words px-3 py-3 text-xs text-cz-admin-muted">{formatWhen(l.created_at)}</td>
+                      <td className="break-words px-3 py-3 font-medium">{l.full_name}</td>
+                      <td className="break-words px-3 py-3">{l.company}</td>
+                      <td className="break-words px-3 py-3">{l.country || ''}</td>
+                      <td className="break-all px-3 py-3">{l.email}</td>
+                      <td className="break-words px-3 py-3">{l.business_type}</td>
+                      <td className="break-words px-3 py-3">{(l.interested_products || []).join(', ')}</td>
+                      <td className="px-3 py-3 text-cz-admin-muted">
+                        <div className="line-clamp-3 whitespace-pre-wrap break-words">{l.notes || ''}</div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         {l.photo_path ? (
                           <button
                             type="button"
@@ -465,10 +549,10 @@ export default function AdminPage() {
                           <span className="text-cz-admin-muted">—</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
+                      <td className="px-3 py-3">
                         <button
                           type="button"
-                          className="mr-3 text-sm font-semibold text-cz-accent"
+                          className="mr-2 text-sm font-semibold text-cz-accent"
                           onClick={() => setEditing(l)}
                         >
                           Edit
@@ -562,7 +646,7 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
     company: initial?.company || '',
     country: initial?.country || '',
     email: initial?.email || '',
-    business_type: initial?.business_type || 'Distributor',
+    business_type: initial?.business_type || '',
     notes: initial?.notes || '',
     consent: initial ? Boolean(initial.consent) : true,
   }));
@@ -588,8 +672,8 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
         consent: form.consent,
       };
 
-      if (!base.full_name || !base.company || !base.email || !base.country) {
-        throw new Error('Name, company, country, and email are required.');
+      if (!base.full_name || !base.company || !base.email) {
+        throw new Error('Name, company, and email are required.');
       }
       if (!base.consent) {
         throw new Error('Consent must be recorded for this lead.');
@@ -632,7 +716,13 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <div className="text-lg font-semibold text-cz-admin-ink">{title}</div>
-          <div className="mt-1 text-sm text-cz-admin-muted">Fast entry — large fields, minimal friction.</div>
+          <div className="mt-1 text-sm text-cz-admin-muted">
+            {isEdit
+              ? 'Update fields and save.'
+              : initial
+                ? 'Check the prefilled fields, complete the rest, then save.'
+                : 'Fast entry — large fields, minimal friction.'}
+          </div>
         </div>
         <button
           type="button"
@@ -655,8 +745,18 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
         <Field label="Email" required>
           <input className="input-admin" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </Field>
-        <Field label="Business type" required>
-          <select className="input-admin" value={form.business_type} onChange={(e) => setForm({ ...form, business_type: e.target.value })}>
+        <Field label="Business type">
+          <select
+            className={`input-admin${!form.business_type ? ' select-placeholder' : ''}`}
+            value={form.business_type}
+            onChange={(e) => setForm({ ...form, business_type: e.target.value })}
+          >
+            <option value="" className="italic text-zinc-400">
+              Select
+            </option>
+            {form.business_type && !BUSINESS_TYPES.includes(form.business_type) ? (
+              <option value={form.business_type}>{form.business_type}</option>
+            ) : null}
             {BUSINESS_TYPES.map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -664,7 +764,7 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
             ))}
           </select>
         </Field>
-        <Field label="Country" required>
+        <Field label="Country">
           <input className="input-admin" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
         </Field>
         <Field label="Photo (optional)">

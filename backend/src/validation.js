@@ -1,4 +1,4 @@
-export const BUSINESS_TYPES = ['Distributor', 'Workshop', 'OEM', 'Trader'];
+export const BUSINESS_TYPES = ['OEM', 'Workshop', 'Distributor', 'Other'];
 
 export const PRODUCTS = ['LTBR', 'MTBR', 'ITBR', 'CTBR', 'PTRB', 'GTBR', 'HTBR', 'ETBR', 'OTHER'];
 
@@ -41,7 +41,9 @@ export function validateEmail(email) {
 
 export function validateBusinessType(v) {
   const t = normalizeString(v);
-  if (!BUSINESS_TYPES.includes(t)) {
+  if (!t) return { ok: true, value: '' };
+  // Accept current options plus legacy "Trader" already stored in older leads.
+  if (!BUSINESS_TYPES.includes(t) && t !== 'Trader') {
     return { ok: false, error: 'Business type is invalid.' };
   }
   return { ok: true, value: t };

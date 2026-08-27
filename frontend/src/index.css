@@ -31,6 +31,22 @@ html {
   .input-admin {
     @apply w-full rounded-2xl border border-cz-admin-line bg-white px-4 py-3 text-base text-cz-admin-ink outline-none ring-0 focus:border-zinc-500;
   }
+
+  .select-placeholder {
+    @apply italic text-zinc-400;
+  }
+
+  .select-placeholder option {
+    @apply not-italic text-cz-admin-ink;
+  }
+
+  .input-dark.select-placeholder {
+    @apply text-zinc-500;
+  }
+
+  .input-dark.select-placeholder option {
+    @apply not-italic text-cz-dark-ink;
+  }
 }
 
 /* Intro page — fade-up (desktop + mobile; triggered via .intro-page--animate) */
