@@ -32,7 +32,7 @@ export default function RequireAdmin({ children }) {
   }
 
   if (status === 'guest') {
-    return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/" replace state={{ from: location.pathname }} />;
   }
 
   return children;

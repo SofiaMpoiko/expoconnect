@@ -27,7 +27,7 @@ api.interceptors.response.use(
       const path = typeof window !== 'undefined' ? window.location.pathname : '';
       if (path === '/admin' && !redirectingToLogin) {
         redirectingToLogin = true;
-        window.location.assign('/admin/login');
+        window.location.assign('/');
       }
     }
     return Promise.reject(err);

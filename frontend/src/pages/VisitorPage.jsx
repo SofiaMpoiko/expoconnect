@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
+import { getAdminToken } from '../adminAuth.js';
 import { BUSINESS_TYPES, PRODUCTS } from '../constants.js';
 import { enqueueOfflineLead, isLikelyNetworkError } from '../offlineQueue.js';
 import { OfflineBanner } from '../hooks/useOfflineQueue.jsx';
@@ -89,7 +90,17 @@ export default function VisitorPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-xl flex-col px-5 pb-10 pt-10 sm:max-w-xl sm:px-6 sm:pt-12">
+    <div className="relative min-h-dvh w-full overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
+      {getAdminToken() ? (
+        <Link
+          to="/admin"
+          className="absolute left-5 top-[max(1.25rem,env(safe-area-inset-top))] z-20 rounded-2xl border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm font-semibold text-zinc-300 backdrop-blur-sm hover:border-zinc-500 hover:text-white sm:left-6"
+        >
+          Dashboard
+        </Link>
+      ) : null}
+
+      <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-5 pb-10 pt-10 sm:max-w-xl sm:px-6 sm:pt-12">
       <OfflineBanner variant="dark" />
 
       <header className="mb-8 flex flex-col items-center text-center">
@@ -227,6 +238,7 @@ export default function VisitorPage() {
         <p className="text-center text-xs text-cz-dark-muted">Need help? Ask a Carbon Zapp team member at the stand.</p>
       </form>
 
+      </div>
     </div>
   );
 }

@@ -8,11 +8,11 @@ import AdminPage from './pages/AdminPage.jsx';
 import AdminQrPage from './pages/AdminQrPage.jsx';
 import RequireAdmin from './components/RequireAdmin.jsx';
 
-const VISITOR_PATHS = ['/', '/register', '/thank-you'];
+const VISITOR_PATHS = ['/intro', '/register', '/thank-you'];
 
 function AppFooter() {
   const path = useLocation().pathname;
-  if (VISITOR_PATHS.includes(path) || path.startsWith('/admin')) return null;
+  if (VISITOR_PATHS.includes(path) || path === '/' || path.startsWith('/admin')) return null;
 
   return (
     <footer className="border-t border-cz-line bg-white py-6 text-center text-sm text-cz-muted">
@@ -26,10 +26,10 @@ function AppFooter() {
 export default function App() {
   useOnlineQueueFlusher();
   const path = useLocation().pathname;
-  const isAdminLogin = path === '/admin/login';
+  const isAdminLogin = path === '/' || path === '/admin/login';
   const isAdminDashboard = path === '/admin';
   const isAdminQr = path === '/admin/qr';
-  const isBlackVisitor = path === '/' || path === '/thank-you' || isAdminQr;
+  const isBlackVisitor = path === '/intro' || path === '/thank-you' || isAdminQr;
 
   return (
     <div
@@ -44,10 +44,11 @@ export default function App() {
       }
     >
       <Routes>
-        <Route path="/" element={<IntroPage />} />
+        <Route path="/" element={<AdminLoginPage />} />
+        <Route path="/intro" element={<IntroPage />} />
         <Route path="/register" element={<VisitorPage />} />
         <Route path="/thank-you" element={<ThankYouPage />} />
-        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/login" element={<Navigate to="/" replace />} />
         <Route
           path="/admin"
           element={

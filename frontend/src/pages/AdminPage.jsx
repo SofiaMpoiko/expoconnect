@@ -249,7 +249,7 @@ export default function AdminPage() {
       // still sign out locally
     }
     clearAdminToken();
-    navigate('/admin/login', { replace: true });
+    navigate('/', { replace: true });
   }
 
   async function downloadExport() {

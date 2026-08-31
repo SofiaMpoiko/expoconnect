@@ -11,7 +11,7 @@ async function enrichFromWebsite(url) {
     full_name: c.full_name || '',
     company: c.company || url,
     email: c.email || '',
-    notes: c.note || `Source: ${c.source_url || url}`,
+    notes: '',
   };
 }
 
@@ -21,12 +21,12 @@ async function resolveQrPayload(raw) {
   if (interpreted.type === 'url') {
     try {
       return await enrichFromWebsite(interpreted.url);
-    } catch (e) {
+    } catch {
       return {
         full_name: '',
         company: interpreted.url,
         email: '',
-        notes: `QR website: ${interpreted.url}\n(${e?.response?.data?.error || e?.message || 'Could not fetch site'})`,
+        notes: '',
       };
     }
   }
@@ -37,7 +37,7 @@ async function resolveQrPayload(raw) {
       full_name: c.full_name || '',
       company: c.company || '',
       email: c.email || '',
-      notes: `Scanned from card QR (${c.source || 'contact'}).`,
+      notes: '',
     };
 
     // Contact QR that also has a URL but missing email/company → try website
@@ -48,7 +48,7 @@ async function resolveQrPayload(raw) {
           full_name: base.full_name || web.full_name,
           company: base.company || web.company,
           email: base.email || web.email,
-          notes: [base.notes, web.notes].filter(Boolean).join('\n'),
+          notes: '',
         };
       } catch {
         return {
@@ -64,7 +64,7 @@ async function resolveQrPayload(raw) {
 
   return {
     ...emptyContact(),
-    notes: interpreted.raw ? `QR content:\n${interpreted.raw}` : '',
+    notes: '',
   };
 }
 
@@ -236,10 +236,7 @@ export default function CardScanner({ onResult, onSkip, onClose }) {
         full_name: parsed.full_name || '',
         company: parsed.company || '',
         email: parsed.email || '',
-        notes:
-          parsed.full_name || parsed.company || parsed.email
-            ? 'Extracted via OCR from business card photo. Please verify.'
-            : `OCR found little usable text. Raw:\n${(data?.text || '').trim().slice(0, 500)}`,
+        notes: '',
       });
     } catch (e) {
       setError(e?.message || 'OCR failed.');

@@ -11,10 +11,8 @@ function isLoopbackHost(hostname) {
 function visitorIntroUrl() {
   const { hostname, origin } = window.location;
   const lanOrigin = typeof __DEV_LAN_ORIGIN__ === 'string' ? __DEV_LAN_ORIGIN__ : '';
-  if (isLoopbackHost(hostname) && lanOrigin) {
-    return `${lanOrigin.replace(/\/$/, '')}/`;
-  }
-  return `${origin}/`;
+  const base = isLoopbackHost(hostname) && lanOrigin ? lanOrigin.replace(/\/$/, '') : origin.replace(/\/$/, '');
+  return `${base}/intro`;
 }
 
 export default function AdminQrPage() {
