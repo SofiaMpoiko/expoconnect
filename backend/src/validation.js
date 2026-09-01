@@ -39,6 +39,14 @@ export function validateEmail(email) {
   return { ok: true, value: e };
 }
 
+/** Empty allowed; non-empty must be a valid email (admin manual entry). */
+export function validateEmailOptional(email) {
+  const e = normalizeString(email);
+  if (!e) return { ok: true, value: '' };
+  if (!EMAIL_RE.test(e)) return { ok: false, error: 'Email is not valid.' };
+  return { ok: true, value: e };
+}
+
 export function validateBusinessType(v) {
   const t = normalizeString(v);
   if (!t) return { ok: true, value: '' };

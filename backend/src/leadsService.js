@@ -4,6 +4,7 @@ import {
   normalizeString,
   parseInterestedProducts,
   validateEmail,
+  validateEmailOptional,
   validateBusinessType,
   validateInterestedProducts,
   parseConsent,
@@ -79,13 +80,13 @@ export function getLeadById(id) {
   return mapLeadRow(row);
 }
 
-export function insertLead(payload) {
+export function insertLead(payload, { strict = true } = {}) {
   const fullName = normalizeString(payload.full_name);
   const company = normalizeString(payload.company);
   const country = normalizeString(payload.country) || null;
   const notes = normalizeString(payload.notes) || null;
 
-  const emailRes = validateEmail(payload.email);
+  const emailRes = strict ? validateEmail(payload.email) : validateEmailOptional(payload.email);
   if (!emailRes.ok) throw new Error(emailRes.error);
 
   const btRes = validateBusinessType(payload.business_type);
@@ -94,11 +95,13 @@ export function insertLead(payload) {
   const productsRes = validateInterestedProducts(payload.interested_products);
   if (!productsRes.ok) throw new Error(productsRes.error);
 
-  if (!isNonEmptyString(fullName)) throw new Error('Full name is required.');
-  if (!isNonEmptyString(company)) throw new Error('Company is required.');
+  if (strict) {
+    if (!isNonEmptyString(fullName)) throw new Error('Full name is required.');
+    if (!isNonEmptyString(company)) throw new Error('Company is required.');
+  }
 
   const consent = parseConsent(payload.consent);
-  if (!consent) throw new Error('Consent is required to proceed.');
+  if (strict && !consent) throw new Error('Consent is required to proceed.');
 
   const createdAt = new Date().toISOString();
   const interestedJson = JSON.stringify(productsRes.value);
@@ -127,7 +130,7 @@ export function insertLead(payload) {
   return getLeadById(info.lastInsertRowid);
 }
 
-export function updateLead(id, payload) {
+export function updateLead(id, payload, { strict = true } = {}) {
   const existing = getLeadById(id);
   if (!existing) return null;
 
@@ -136,7 +139,9 @@ export function updateLead(id, payload) {
   const country = normalizeString(payload.country ?? existing.country ?? '') || null;
   const notes = normalizeString(payload.notes ?? existing.notes ?? '') || null;
 
-  const emailRes = validateEmail(payload.email ?? existing.email);
+  const emailRes = strict
+    ? validateEmail(payload.email ?? existing.email)
+    : validateEmailOptional(payload.email ?? existing.email);
   if (!emailRes.ok) throw new Error(emailRes.error);
 
   const btRes = validateBusinessType(payload.business_type ?? existing.business_type);
@@ -147,12 +152,14 @@ export function updateLead(id, payload) {
   );
   if (!productsRes.ok) throw new Error(productsRes.error);
 
-  if (!isNonEmptyString(fullName)) throw new Error('Full name is required.');
-  if (!isNonEmptyString(company)) throw new Error('Company is required.');
+  if (strict) {
+    if (!isNonEmptyString(fullName)) throw new Error('Full name is required.');
+    if (!isNonEmptyString(company)) throw new Error('Company is required.');
+  }
 
   const consent =
     payload.consent !== undefined ? parseConsent(payload.consent) : existing.consent;
-  if (!consent) throw new Error('Consent is required to proceed.');
+  if (strict && !consent) throw new Error('Consent is required to proceed.');
 
   const interestedJson = JSON.stringify(productsRes.value);
   const photoPath =

@@ -137,15 +137,20 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/admin/login', (req, res) => {
-  if (!isAdminConfigured()) {
-    return res.status(503).json({ error: 'Admin login is not configured on the server.' });
+  try {
+    if (!isAdminConfigured()) {
+      return res.status(503).json({ error: 'Admin login is not configured on the server.' });
+    }
+    const username = String(req.body?.username || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    if (username !== 'admin' || !verifyPassword(password)) {
+      return res.status(401).json({ error: 'Invalid username or password.' });
+    }
+    const token = createSession();
+    res.json({ token });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
   }
-  const password = String(req.body?.password || '');
-  if (!verifyPassword(password)) {
-    return res.status(401).json({ error: 'Invalid password.' });
-  }
-  const token = createSession();
-  res.json({ token });
 });
 
 app.get('/api/admin/session', requireAdmin, (_req, res) => {
@@ -188,9 +193,10 @@ app.post('/api/leads', leadsPostLimiter, maybePhotoUpload, (req, res) => {
   try {
     const body = req.body || {};
     const photo_path = req.file ? publicPhotoUrl(req.file.filename) : body.photo_path || null;
-    const lead = insertLead({ ...baseLeadFields(req), photo_path });
+    const adminEntry = verifySession(tokenFromRequest(req));
+    const lead = insertLead({ ...baseLeadFields(req), photo_path }, { strict: !adminEntry });
     afterLeadMutation();
-    enqueueThankYouEmail(lead.id, lead.email);
+    if (!adminEntry && lead.email) enqueueThankYouEmail(lead.id, lead.email);
     res.status(201).json({ lead });
   } catch (e) {
     cleanupUploadedFile(req);
@@ -214,7 +220,7 @@ app.put('/api/leads/:id', requireAdmin, maybePhotoUpload, (req, res) => {
     }
 
     const oldPhoto = existing.photo_path;
-    const lead = updateLead(id, payload);
+    const lead = updateLead(id, payload, { strict: false });
 
     if (req.file && oldPhoto && oldPhoto !== lead.photo_path) {
       deletePhotoFileIfExists(oldPhoto);

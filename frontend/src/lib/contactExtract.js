@@ -1,10 +1,12 @@
-const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+const STRICT_EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const EMAIL_IN_TEXT_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
 const TITLE_HINTS = /^(mr|mrs|ms|miss|dr|prof|eng|ir)\.?$/i;
 const ROLE_HINTS =
   /\b(ceo|cto|cfo|coo|founder|director|manager|engineer|sales|marketing|owner|president|partner|consultant|specialist|executive|head of|lead)\b/i;
 const SKIP_LINE =
   /^(tel|phone|fax|mobile|www\.|http|https|p\.?\s*o\.?\s*box|address|street|suite|floor)\b/i;
+const GENERIC_LOCALPART = /^(info|contact|hello|sales|office|admin|noreply|no-reply|support|enquiries|inquiry)$/i;
 
 function cleanLine(s) {
   return String(s || '')
@@ -25,9 +27,116 @@ function uniq(arr) {
   return out;
 }
 
+function lineContainsEmail(s) {
+  return /[a-zA-Z0-9._%+-]+@/.test(s) || /(\(at\)|\[at\]|\s+at\s+)/i.test(s);
+}
+
+function normalizeAtAliases(text) {
+  return String(text || '')
+    .replace(/\(at\)|\[at\]|\{at\}/gi, '@')
+    .replace(/\s+@\s+/g, '@')
+    .replace(/\s+at\s+/gi, '@')
+    .replace(/mailto:/gi, '');
+}
+
+function stripEmailLabel(s) {
+  return cleanLine(String(s || '').replace(/^(e-?mail|e-mail address|email address)\s*:?\s*/i, ''));
+}
+
+function normalizeEmailCandidate(raw) {
+  let s = normalizeAtAliases(stripEmailLabel(raw));
+  s = s.replace(/[|,;]+$/g, '');
+  s = s.replace(/\s+/g, '');
+  s = s.replace(/\.{2,}/g, '.');
+  s = s.replace(/@+/g, '@');
+  return s.toLowerCase();
+}
+
+function isPlausibleEmail(email) {
+  if (!STRICT_EMAIL_RE.test(email)) return false;
+  const domain = email.split('@')[1] || '';
+  if (/\.(png|jpe?g|gif|svg|css|js)$/i.test(domain)) return false;
+  if (/(example\.com|domain\.com|email\.com|test\.com)$/i.test(domain)) return false;
+  return true;
+}
+
+/** Join OCR lines when an address is split across rows (e.g. user@host + .com). */
+function joinSplitEmailLines(text) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const merged = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = cleanLine(lines[i]);
+    if (!trimmed) continue;
+
+    if (/@/.test(trimmed) && !/\.[a-z]{2,}$/i.test(trimmed.replace(/\s+/g, '')) && i + 1 < lines.length) {
+      const combined = cleanLine(`${trimmed} ${lines[i + 1]}`);
+      if (/@/.test(combined)) {
+        merged.push(combined);
+        i += 1;
+        continue;
+      }
+    }
+
+    if (/^\.[a-z]{2,}\b/i.test(trimmed) && merged.length && /@/.test(merged[merged.length - 1])) {
+      merged[merged.length - 1] = `${merged[merged.length - 1]}${trimmed.replace(/\s+/g, '')}`;
+      continue;
+    }
+
+    merged.push(trimmed);
+  }
+
+  return merged.join('\n');
+}
+
+function scoreEmail(email) {
+  const [local = ''] = email.split('@');
+  let score = 0;
+  if (GENERIC_LOCALPART.test(local)) score -= 4;
+  if (local.includes('.') && local.length > 3) score += 2;
+  if (/^[a-z][a-z0-9._+-]*$/i.test(local)) score += 1;
+  return score;
+}
+
+function addCandidate(set, raw) {
+  const normalized = normalizeEmailCandidate(raw);
+  if (isPlausibleEmail(normalized)) set.add(normalized);
+}
+
+/**
+ * OCR-tolerant email extraction: loose @ matching, label strip, line joins, best pick.
+ */
+export function extractEmailsFromOcr(text) {
+  const prepared = joinSplitEmailLines(normalizeAtAliases(text));
+  const candidates = new Set();
+
+  for (const line of prepared.split(/\n| {2,}|\|/)) {
+    const cleaned = stripEmailLabel(line);
+    if (!cleaned) continue;
+
+    for (const match of cleaned.matchAll(EMAIL_IN_TEXT_RE)) {
+      addCandidate(candidates, match[0]);
+    }
+
+    if (!lineContainsEmail(cleaned)) continue;
+
+    addCandidate(candidates, cleaned);
+
+    const loose = cleaned.match(/[a-zA-Z0-9._%+\s-]+@[a-zA-Z0-9.\s-]+\.[a-zA-Z]{2,}/);
+    if (loose) addCandidate(candidates, loose[0]);
+
+    addCandidate(candidates, cleaned.replace(/\s+/g, ''));
+  }
+
+  return [...candidates].sort((a, b) => scoreEmail(b) - scoreEmail(a));
+}
+
 export function extractEmails(text) {
-  const matches = String(text || '').match(EMAIL_RE) || [];
-  return uniq(matches).filter((e) => !/\.(png|jpe?g|gif|svg|css|js)$/i.test(e));
+  return extractEmailsFromOcr(text);
+}
+
+export function pickBestEmail(text) {
+  return extractEmailsFromOcr(text)[0] || '';
 }
 
 export function looksLikeUrl(text) {
@@ -89,7 +198,7 @@ export function parseVCard(raw) {
     }
   }
 
-  const emails = extractEmails(fields.EMAIL || text);
+  const emails = extractEmailsFromOcr(fields.EMAIL || text);
   const org = unescapeVcard((fields.ORG || '').split(';')[0] || '');
   const full_name = parseVcardName(fields.FN, fields.N);
   const url = unescapeVcard((fields.URL || '').split('\n')[0] || '');
@@ -115,7 +224,7 @@ export function parseMeCard(raw) {
     return m?.[1] ? cleanLine(m[1]) : '';
   };
 
-  const emails = extractEmails(get('EMAIL') || body);
+  const emails = extractEmailsFromOcr(get('EMAIL') || body);
   return {
     full_name: get('N'),
     company: get('ORG') || get('CORP'),
@@ -128,7 +237,7 @@ export function parseMeCard(raw) {
 function scoreNameLine(line) {
   const s = cleanLine(line);
   if (!s || s.length < 2 || s.length > 60) return -1;
-  if (EMAIL_RE.test(s) || looksLikeUrl(s)) return -1;
+  if (lineContainsEmail(s) || looksLikeUrl(s)) return -1;
   if (SKIP_LINE.test(s) || ROLE_HINTS.test(s)) return -1;
   if (/\d{3,}/.test(s)) return -1;
   const words = s.split(/\s+/).filter(Boolean);
@@ -144,7 +253,7 @@ function scoreNameLine(line) {
 function scoreCompanyLine(line, nameLine) {
   const s = cleanLine(line);
   if (!s || s.length < 2 || s.length > 80) return -1;
-  if (EMAIL_RE.test(s) || looksLikeUrl(s)) return -1;
+  if (lineContainsEmail(s) || looksLikeUrl(s)) return -1;
   if (SKIP_LINE.test(s)) return -1;
   if (nameLine && s.toLowerCase() === nameLine.toLowerCase()) return -1;
   let score = 1;
@@ -159,7 +268,7 @@ function scoreCompanyLine(line, nameLine) {
 /** Best-effort name/company/email from free text (OCR or plain QR). */
 export function parseContactText(raw) {
   const text = String(raw || '').replace(/\r\n/g, '\n');
-  const emails = extractEmails(text);
+  const email = pickBestEmail(text);
   const lines = text
     .split(/\n| {2,}|\|/)
     .map(cleanLine)
@@ -188,7 +297,7 @@ export function parseContactText(raw) {
   return {
     full_name: bestName >= 2 ? full_name : bestName >= 0 ? full_name : '',
     company: bestCo >= 1 ? company : '',
-    email: emails[0] || '',
+    email,
     url: '',
     source: 'text',
   };
@@ -225,7 +334,7 @@ export function interpretQrPayload(raw) {
 
   const compact = cleanLine(text);
   const url = normalizeHttpUrl(compact);
-  const emailsInPayload = extractEmails(text);
+  const emailsInPayload = extractEmailsFromOcr(text);
   const looksLikeLoneUrl =
     Boolean(url) &&
     !emailsInPayload.length &&

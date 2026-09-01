@@ -4,6 +4,26 @@ import { createWorker } from 'tesseract.js';
 import { api } from '../api.js';
 import { emptyContact, interpretQrPayload, parseContactText } from '../lib/contactExtract.js';
 
+/** Boost contrast on captured frame to help Tesseract read emails. */
+function canvasForOcr(sourceCanvas) {
+  const w = sourceCanvas.width;
+  const h = sourceCanvas.height;
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(sourceCanvas, 0, 0);
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const boosted = Math.min(255, Math.max(0, (gray - 128) * 1.45 + 128));
+    d[i] = d[i + 1] = d[i + 2] = boosted;
+  }
+  ctx.putImageData(img, 0, 0);
+  return out;
+}
+
 async function enrichFromWebsite(url) {
   const res = await api.post('/admin/extract-website', { url }, { timeout: 20_000 });
   const c = res.data?.contact || {};
@@ -230,7 +250,8 @@ export default function CardScanner({ onResult, onSkip, onClose }) {
         workerRef.current = await createWorker('eng');
       }
       const worker = workerRef.current;
-      const { data } = await worker.recognize(canvas);
+      const ocrCanvas = canvasForOcr(canvas);
+      const { data } = await worker.recognize(ocrCanvas);
       const parsed = parseContactText(data?.text || '');
       await finish({
         full_name: parsed.full_name || '',

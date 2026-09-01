@@ -4,8 +4,26 @@ import { api } from '../api.js';
 import { getAdminToken, setAdminToken } from '../adminAuth.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 
+const ADMIN_USERNAME = 'admin';
+
+function loginErrorMessage(err) {
+  if (!err?.response) {
+    return 'Cannot reach the server. Make sure the backend is running (npm run dev:backend).';
+  }
+  const apiError = err.response.data?.error;
+  if (apiError) return String(apiError);
+  if (err.response.status === 500) {
+    return 'Server error. Start the backend (npm run dev:backend), then try again.';
+  }
+  if (err.response.status === 503) {
+    return 'Admin login is not configured on the server (ADMIN_PASSWORD missing).';
+  }
+  return err.message || 'Sign in failed.';
+}
+
 export default function AdminLoginPage() {
   const navigate = useNavigate();
+  const [username, setUsername] = useState(ADMIN_USERNAME);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -32,11 +50,11 @@ export default function AdminLoginPage() {
     setError('');
     setBusy(true);
     try {
-      const res = await api.post('/admin/login', { password });
+      const res = await api.post('/admin/login', { username, password });
       setAdminToken(res.data.token);
       navigate('/admin', { replace: true });
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || 'Sign in failed.');
+      setError(loginErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -63,6 +81,17 @@ export default function AdminLoginPage() {
 
         <form onSubmit={onSubmit} className="admin-login-form mt-0 w-full max-w-xs space-y-5">
           <label className="block text-left">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-500">Username</span>
+            <input
+              className="input-dark w-full"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </label>
+          <label className="block text-left">
             <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-500">Password</span>
             <input
               className="input-dark w-full"
@@ -80,7 +109,7 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={busy || !password}
+            disabled={busy || !username.trim() || !password}
             className="flex min-h-[52px] w-full items-center justify-center rounded-2xl border-0 bg-[#EE412F] px-8 py-4 text-[15px] font-semibold uppercase tracking-wide text-white shadow-[0_10px_15px_-3px_rgb(238_65_47/0.25)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? 'Signing in…' : 'Sign in'}

@@ -74,5 +74,9 @@ export default defineConfig({
   preview: {
     host: true,
     port: DEV_PORT,
+    proxy: {
+      '/api': 'http://127.0.0.1:3001',
+      '/uploads': 'http://127.0.0.1:3001',
+    },
   },
 });

@@ -370,7 +370,7 @@ export default function AdminPage() {
                       notes: contact.notes || '',
                       country: '',
                       business_type: '',
-                      consent: true,
+                      consent: false,
                     });
                     setAddStep('form');
                   }}
@@ -648,7 +648,7 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
     email: initial?.email || '',
     business_type: initial?.business_type || '',
     notes: initial?.notes || '',
-    consent: initial ? Boolean(initial.consent) : true,
+    consent: initial ? Boolean(initial.consent) : false,
   }));
   const [products, setProducts] = useState(() => initial?.interested_products || []);
   const [photo, setPhoto] = useState(null);
@@ -671,13 +671,6 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
         notes: form.notes.trim(),
         consent: form.consent,
       };
-
-      if (!base.full_name || !base.company || !base.email) {
-        throw new Error('Name, company, and email are required.');
-      }
-      if (!base.consent) {
-        throw new Error('Consent must be recorded for this lead.');
-      }
 
       if (isEdit) {
         if (photo) {
@@ -721,7 +714,7 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
               ? 'Update fields and save.'
               : initial
                 ? 'Check the prefilled fields, complete the rest, then save.'
-                : 'Fast entry — large fields, minimal friction.'}
+                : 'Photo and notes are minimum requirements.'}
           </div>
         </div>
         <button
@@ -736,13 +729,13 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
       {err ? <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">{err}</div> : null}
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Full name" required>
+        <Field label="Full name">
           <input className="input-admin" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
         </Field>
-        <Field label="Company" required>
+        <Field label="Company">
           <input className="input-admin" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
         </Field>
-        <Field label="Email" required>
+        <Field label="Email">
           <input className="input-admin" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </Field>
         <Field label="Business type">
@@ -767,7 +760,7 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
         <Field label="Country">
           <input className="input-admin" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
         </Field>
-        <Field label="Photo (optional)">
+        <Field label="Photo">
           <input
             className="block w-full text-sm text-cz-admin-muted file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-700 file:px-4 file:py-3 file:text-sm file:font-semibold file:text-white"
             type="file"
