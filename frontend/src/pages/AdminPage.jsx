@@ -669,7 +669,7 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
         business_type: form.business_type,
         interested_products: products,
         notes: form.notes.trim(),
-        consent: form.consent,
+        consent: isEdit ? form.consent : false,
       };
 
       if (isEdit) {
@@ -788,15 +788,17 @@ function LeadEditor({ title, initial, onClose, onSaved }) {
         </Field>
       </div>
 
-      <label className="mt-4 flex items-start gap-3 rounded-2xl border border-cz-admin-line px-4 py-4">
-        <input
-          type="checkbox"
-          className="mt-1 h-5 w-5"
-          checked={form.consent}
-          onChange={(e) => setForm({ ...form, consent: e.target.checked })}
-        />
-        <span className="text-sm leading-relaxed">I agree to receive communication from Carbon Zapp</span>
-      </label>
+      {isEdit ? (
+        <label className="mt-4 flex items-start gap-3 rounded-2xl border border-cz-admin-line px-4 py-4">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5"
+            checked={form.consent}
+            onChange={(e) => setForm({ ...form, consent: e.target.checked })}
+          />
+          <span className="text-sm leading-relaxed">I agree to receive communication from Carbon Zapp</span>
+        </label>
+      ) : null}
 
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
         <button type="button" className="min-h-[44px] rounded-2xl border border-cz-admin-line px-4 py-3 text-sm font-semibold" onClick={onClose}>
